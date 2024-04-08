@@ -1,0 +1,73 @@
+name: updating release tags
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'enter the tag'
+        required: true
+      notes:
+        description: 'enter your notes'
+        required: true
+      version:
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'Type of new version (major / minor / patch)'
+        # Input has to be provided for the workflow to run
+        required: true
+        type: choice
+        options: 
+        - patch
+        - minor
+        - major
+jobs:
+  new-release:
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      contents: write
+      statuses: write
+
+    steps: 
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{github.token}}
+          #fetch-depth: 0
+        #with:
+          #token: ${{ secrets.GH_TOKEN }}
+          #fetch-depth: 0
+
+      #- name: Assign release tag
+        #env:
+          #GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        #run: |
+         #gh release create ${{ github.event.inputs.tag }} --title "v${{ github.event.inputs.tag }}" --generate-notes -n "${{ github.event.inputs.notes }}"
+         #gh release create ${{ github.event.inputs.tag }} --title "v${{ github.event.inputs.tag }}" --generate-notes -F note.md
+
+      
+      #- name: Create Release Notes
+        #uses: actions/github-script@v7
+        #with:
+          #github-token: ${{github.token}}
+          #script: |
+            #await github.request(`POST /repos/${{ github.repository }}/releases`, {
+              #tag_name: "${{ github.event.inputs.tag }}",
+              #name: "v${{ github.event.inputs.tag }} release",
+              #generate_release_notes: true,
+              #body: "it works fine with the token and permissions"
+            #});
+
+      - name: packege file
+        run: echo -e "\n" | npm init -y
+      
+      - name: Initialize mandatory git config
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email $git_email
+        env:
+          git_email: "${{ github.actor }}@vultara.com"
+      - name: bump version
+        run: npm version ${{ github.event.inputs.version }} --tag-version-prefix=""
+
+      - name: Push latest version
+        run: git push origin main --follow-tags 
